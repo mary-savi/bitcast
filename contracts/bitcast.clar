@@ -247,3 +247,56 @@
 (define-read-only (get-market-counter)
   (var-get market-counter)
 )
+
+;; Get Protocol Configuration
+(define-read-only (get-protocol-config)
+  {
+    oracle-address: (var-get oracle-address),
+    minimum-stake: (var-get minimum-stake),
+    fee-percentage: (var-get fee-percentage),
+    contract-owner: CONTRACT-OWNER,
+  }
+)
+
+;; ADMINISTRATIVE FUNCTIONS
+
+;; Update Oracle Address
+(define-public (set-oracle-address (new-address principal))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-OWNER-ONLY)
+    (asserts! (not (is-eq new-address (var-get oracle-address)))
+      ERR-INVALID-PARAMETER
+    )
+    (ok (var-set oracle-address new-address))
+  )
+)
+
+;; Configure Minimum Stake Amount
+(define-public (set-minimum-stake (new-minimum uint))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-OWNER-ONLY)
+    (asserts! (> new-minimum u0) ERR-INVALID-PARAMETER)
+    (ok (var-set minimum-stake new-minimum))
+  )
+)
+
+;; Adjust Protocol Fee Percentage
+(define-public (set-fee-percentage (new-fee uint))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-OWNER-ONLY)
+    (asserts! (<= new-fee u100) ERR-INVALID-PARAMETER)
+    (ok (var-set fee-percentage new-fee))
+  )
+)
+
+;; Withdraw Protocol Fees
+(define-public (withdraw-fees (amount uint))
+  (begin
+    (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-OWNER-ONLY)
+    (asserts! (<= amount (stx-get-balance (as-contract tx-sender)))
+      ERR-INSUFFICIENT-BALANCE
+    )
+    (try! (as-contract (stx-transfer? amount (as-contract tx-sender) CONTRACT-OWNER)))
+    (ok amount)
+  )
+)
